@@ -1,0 +1,109 @@
+# Prerequisites
+*.d
+
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+*.ko
+*.elf
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Fortran module files
+*.mod
+*.smod
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
+*.i*86
+*.x86_64
+*.hex
+
+# Debug files
+*.dSYM/
+*.su
+*.idb
+*.pdb
+
+# CUDA specific
+*.i
+*.ii
+*.gpu
+*.ptx
+*.cubin
+*.fatbin
+*.cudafe1.c
+*.cudafe2.c
+*.cudafe1.cpp
+*.cudafe2.cpp
+
+# IDE specific files
+.vs/
+.vscode/
+*.swp
+*.swo
+*~
+.idea/
+*.iml
+cmake-build-*/
+
+# Build directories
+build/
+debug/
+release/
+bin/
+lib/
+x64/
+x86/
+
+# Specific to your project (based on your structure)
+test_dot_product
+mnist_reader
+*.exe
+
+# OS specific
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# CMake specific
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+install_manifest.txt
+
+# Dependencies
+deps/
+external/
+
+# Logs and databases
+*.log
+*.sql
+*.sqlite
+
+# Ignore everything in the data folder
+/data/
+
+# Explicitly ignore .o and .d files
+*.o
+*.d
+
+cuda-repo-wsl-ubuntu-*.deb
+data/*.ubyte
