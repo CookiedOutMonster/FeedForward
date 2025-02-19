@@ -107,7 +107,7 @@ void updateLayerData(float* deviceData, const float* hostData, size_t numElement
     checkCuda(cudaMemcpy(deviceData, hostData, size, cudaMemcpyHostToDevice), errorMsg);
 }
 
-void updateLayerActivations(LayerGPU* layer, const float* newActivations, size_t numOfActivations) {
+void updateLayerActivations(const LayerGPU* layer, const float* newActivations, size_t numOfActivations) {
     if (numOfActivations != layer->numNeurons) {
         throw std::out_of_range("Number of neurons in layer exceeds the given data.");
     }

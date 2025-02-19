@@ -21,6 +21,8 @@ using namespace std;
 class NeuralNetwork {
    private:
     int numLayers;
+    const LayerGPU* firstLayerGPU;
+    const LayerGPU* lastLayerGPU;
 
     ///////////////////////////////////////////////////////
     ////               Neural Network Layers           ////

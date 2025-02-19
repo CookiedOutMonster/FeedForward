@@ -90,10 +90,12 @@ void NeuralNetwork::initLayersCUDA(const std::vector<int>& layerConfig) {
         if (i == FIRST_LAYER) {
             layersGPU[i]->numWeights = 0;
             layersGPU[i]->numBiases = 0;
-        } else {
-            // randomize my weights and biases;
         }
     }
+
+    // @TODO potentially turn this into a function
+    this->firstLayerGPU = getLayerGPU(FIRST_LAYER);
+    this->lastLayerGPU = getLayerGPU(numLayers - 1);
 }
 
 void NeuralNetwork::freeLayersGPU() {
@@ -201,11 +203,21 @@ vector<float> NeuralNetwork ::feedForwardCUDA(vector<float>& inputData) {
     // void inputCUDA(const vector<float>& inputData);
 
     // TODO make a method that saves the last layer size
-    LayerGPU* lastLayer = getLayerGPU(numLayers - 1);
-    int outputSize = lastLayer->numNeurons;
+    int outputSize = this->lastLayerGPU->numNeurons;
     vector<float> output(outputSize, 0.0f);
 
+    // take input data and place it inside input layers
     inputCUDA(inputData);
+
+    // so the layer of i's activations is computed as:
+    // the activations of the previous layer?
+    // * the weights of the previous layer?
+    // plus the bias of the current layer?
+
+    // this means: start on the second layer
+    for (int i = SECOND_LAYER; i < this->numLayers; i++) {
+        // get the value of the previous layer
+    }
 
     return output;
 }
@@ -215,8 +227,7 @@ void NeuralNetwork ::inputCUDA(vector<float>& inputData) {
     float* convertedInputData = inputData.data();
     size_t size = inputData.size();
 
-    LayerGPU* firstLayer = getLayerGPU(FIRST_LAYER);
-    updateLayerActivations(firstLayer, convertedInputData, size);
+    updateLayerActivations(this->firstLayerGPU, convertedInputData, size);
 }
 
 ///////////////////////////////////////////////////////

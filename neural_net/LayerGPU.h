@@ -28,7 +28,7 @@ typedef struct {
 // Function declarations
 LayerGPU *createLayer(int numNeurons, int prevLayerNeurons, std::mt19937 rng = std::mt19937(std::random_device{}()));
 cudaError_t freeLayerGPU(LayerGPU *layer);
-void updateLayerActivations(LayerGPU *layer, const float *newActivations, size_t numOfActivations);
+void updateLayerActivations(const LayerGPU *layer, const float *newActivations, size_t numOfActivations);
 void checkCuda(cudaError_t status, const char *msg);
 
 void initializeRandomWeightsAndBiases(LayerGPU *layer, std::mt19937 rng, float min, float max);
