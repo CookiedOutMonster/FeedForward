@@ -16,6 +16,7 @@ NeuralNetwork::NeuralNetwork(const vector<int>& layerConfig, const std::string& 
                              bool isCudaAccelerated) {
     if (isCudaAccelerated) {
         initLayersCUDA(layerConfig);
+        initGPUConfig();
     } else {
         initLayersCPU(layerConfig);
     }

@@ -10,6 +10,7 @@
 #include <string>
 #include <vector>
 
+#include "GPUConfig.h"
 #include "Layer.h"
 #include "LayerGPU.h"
 

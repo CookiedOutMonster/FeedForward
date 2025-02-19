@@ -40,6 +40,8 @@ int main() {
     std::vector<float> inputData = {1, 2, 3, 4, 5};
 
     nn.feedForwardCUDA(inputData);
+
+    return 0;
 }
 
 /*

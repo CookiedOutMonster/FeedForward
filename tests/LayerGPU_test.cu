@@ -78,7 +78,7 @@ TEST(LayerGPUTest, UpdatingLayerTest) {
     float activations[] = {1, 2, 3, 4, 5};
     size_t numOfActivations = 5;
 
-    updateLayerState(layer, activations, numOfActivations);
+    updateLayerActivations(layer, activations, numOfActivations);
 
     // Verify the layer's neuronActivations match expected activations
     testMemory(activations, layer->d_neuronActivations, numOfActivations);
@@ -92,7 +92,7 @@ TEST(LayerGPUTest, UpdateLayerThrowsOnSizeMismatch) {
     float activations[3] = {1, 2, 3};  // Only 3 activations given (mismatch)
     size_t numOfActivations = 3;
 
-    EXPECT_THROW(updateLayerState(layer, activations, numOfActivations),
+    EXPECT_THROW(updateLayerActivations(layer, activations, numOfActivations),
                  std::out_of_range  // Expected exception type
     );
 
