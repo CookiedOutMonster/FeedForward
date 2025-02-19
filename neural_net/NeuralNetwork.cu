@@ -202,9 +202,9 @@ vector<float> NeuralNetwork ::feedForwardCUDA(vector<float>& inputData) {
     // take input data and assign it to the first layer.
     // void inputCUDA(const vector<float>& inputData);
 
-    // TODO make a method that saves the last layer size
-    int outputSize = this->lastLayerGPU->numNeurons;
-    vector<float> output(outputSize, 0.0f);
+    // @TODO make this a function
+    int numberOfOutPutNuerons = this->lastLayerGPU->numNeurons;
+    vector<float> output(numberOfOutPutNuerons, 0.0f);
 
     // take input data and place it inside input layers
     inputCUDA(inputData);
@@ -214,9 +214,26 @@ vector<float> NeuralNetwork ::feedForwardCUDA(vector<float>& inputData) {
     // * the weights of the previous layer?
     // plus the bias of the current layer?
 
+    LayerGPU* prevLayer = const_cast<LayerGPU*>(firstLayerGPU);
+
     // this means: start on the second layer
     for (int i = SECOND_LAYER; i < this->numLayers; i++) {
+        // current layer
+        LayerGPU* currLayer = layersGPU[i];
+        float* curr_device_bias = currLayer->d_biases;
+
         // get the value of the previous layer
+        // holy memory access batman
+        float* prev_device_activation = prevLayer->d_neuronActivations;
+        float* prev_device_weights = prevLayer->d_weights;  // does the input layer have weights?
+
+        // kernal call
+
+        // problem: decide if the Layer's weights and biases are for the next layer or they are for the previous layer
+        // lol
+
+        // update prev layer
+        prevLayer = currLayer;
     }
 
     return output;
