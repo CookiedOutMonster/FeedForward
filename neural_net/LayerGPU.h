@@ -18,6 +18,7 @@ typedef struct {
     float *h_weights;
     float *h_biases;
 
+    // @TODO consider removing "prevLayerNeurons"
     int numNeurons;
     int numWeights;
     int numBiases;
