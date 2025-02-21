@@ -4,7 +4,7 @@
 
 #include "MatrixOperations.h"
 
-// TODO create a method for matrix addition
+// TODO this might create a data race...
 __global__ void MatrixAddition(float *d_arr_a, float *d_arr_b, float *d_result, int size) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     // be wary of potential warp divergence...
@@ -42,4 +42,24 @@ __host__ __device__ int DotProduct(double *leftHandSideVector, double *rightHand
 
 __global__ void DotProductKernel(double *leftHandSideVector, double *rightHandSideVector, int *result, int size) {
     *result = DotProduct(leftHandSideVector, rightHandSideVector, size);
+}
+
+// Sigmoid activation kernel
+__global__ void sigmoidActivationKernel(float *neurons, int size) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (idx < size) {
+        // Call the static activation function directly
+        neurons[idx] = 1.0 / (1.0 + exp(-neurons[idx]));
+    }
+}
+
+// ReLU activation kernel
+__global__ void reluActivationKernel(double *neurons, int size) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (idx < size) {
+        // Call the static activation function directly
+        neurons[idx] = max(0.0, neurons[idx]);
+    }
 }

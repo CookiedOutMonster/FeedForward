@@ -6,6 +6,14 @@
 #include "GPUConfig.h"
 #include "MatrixOperations.h"
 
+float cpuSigmoid(float x) {
+    return 1.0f / (1.0f + expf(-x));
+}
+
+double cpuReLU(double x) {
+    return fmax(0.0, x);
+}
+
 void MatrixVectorMultiply(const float *weights, const float *prev_activations, float *output, int curr_neurons,
                           int prev_neurons) {
     // Initialize output to zero
@@ -16,10 +24,6 @@ void MatrixVectorMultiply(const float *weights, const float *prev_activations, f
             output[row] += weights[row * prev_neurons + col] * prev_activations[col];
         }
     }
-}
-
-int calculateBlocks(int size) {
-    return (size + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
 }
 
 TEST(DotProduct, DotProduct_5vector_x_5vector_CPU) {
@@ -165,4 +169,220 @@ TEST(MatrixVectorMultiplyTest, ComputesCorrectOutput) {
     cudaFree(d_weights);
     cudaFree(d_prev_activations);
     cudaFree(d_result);
+}
+
+TEST(ActivationFunctions, SigmoidActivation_CPU_vs_GPU) {
+    std::vector<int> test_sizes = {10, 100, 500, 1000};
+
+    for (int size : test_sizes) {
+        printf("\nTesting Sigmoid activation with array size: %d\n", size);
+
+        // Initialize host arrays
+        float *h_input = new float[size];
+        float *h_expected = new float[size];
+        float *h_result = new float[size];
+
+        // Initialize test data with a range of values (negative, zero, positive)
+        for (int i = 0; i < size; i++) {
+            h_input[i] = -5.0f + (10.0f * i / size);  // Range from -5 to 5
+            h_expected[i] = cpuSigmoid(h_input[i]);   // Calculate expected results on CPU
+        }
+
+        // Allocate device memory
+        float *d_neurons;
+        cudaMalloc(&d_neurons, size * sizeof(float));
+
+        // Copy input to device
+        cudaMemcpy(d_neurons, h_input, size * sizeof(float), cudaMemcpyHostToDevice);
+
+        // Launch kernel
+        int numThreads = THREADS_PER_BLOCK;
+        int numBlocks = calculateBlocks(size);
+        sigmoidActivationKernel<<<numBlocks, numThreads>>>(d_neurons, size);
+        cudaDeviceSynchronize();
+
+        // Check for kernel execution errors
+        cudaError_t err = cudaGetLastError();
+        ASSERT_EQ(cudaSuccess, err) << "Kernel execution failed: " << cudaGetErrorString(err);
+
+        // Copy result back to host
+        cudaMemcpy(h_result, d_neurons, size * sizeof(float), cudaMemcpyDeviceToHost);
+
+        // Verify results with epsilon for floating point comparison
+        const float epsilon = 1e-5f;
+        for (int i = 0; i < size; i++) {
+            EXPECT_NEAR(h_expected[i], h_result[i], epsilon)
+                << "Sigmoid mismatch at index " << i << " for input " << h_input[i];
+        }
+
+        // Cleanup
+        cudaFree(d_neurons);
+        delete[] h_input;
+        delete[] h_expected;
+        delete[] h_result;
+    }
+}
+
+TEST(ActivationFunctions, ReluActivation_CPU_vs_GPU) {
+    std::vector<int> test_sizes = {10, 100, 500, 1000};
+
+    for (int size : test_sizes) {
+        printf("\nTesting ReLU activation with array size: %d\n", size);
+
+        // Initialize host arrays
+        double *h_input = new double[size];
+        double *h_expected = new double[size];
+        double *h_result = new double[size];
+
+        // Initialize test data with a range of values (negative, zero, positive)
+        for (int i = 0; i < size; i++) {
+            h_input[i] = -5.0 + (10.0 * i / size);  // Range from -5 to 5
+            h_expected[i] = cpuReLU(h_input[i]);    // Calculate expected results on CPU
+        }
+
+        // Allocate device memory
+        double *d_neurons;
+        cudaMalloc(&d_neurons, size * sizeof(double));
+
+        // Copy input to device
+        cudaMemcpy(d_neurons, h_input, size * sizeof(double), cudaMemcpyHostToDevice);
+
+        // Launch kernel
+        int numThreads = THREADS_PER_BLOCK;
+        int numBlocks = calculateBlocks(size);
+        reluActivationKernel<<<numBlocks, numThreads>>>(d_neurons, size);
+        cudaDeviceSynchronize();
+
+        // Check for kernel execution errors
+        cudaError_t err = cudaGetLastError();
+        ASSERT_EQ(cudaSuccess, err) << "Kernel execution failed: " << cudaGetErrorString(err);
+
+        // Copy result back to host
+        cudaMemcpy(h_result, d_neurons, size * sizeof(double), cudaMemcpyDeviceToHost);
+
+        // Verify results
+        const double epsilon = 1e-10;
+        for (int i = 0; i < size; i++) {
+            EXPECT_NEAR(h_expected[i], h_result[i], epsilon)
+                << "ReLU mismatch at index " << i << " for input " << h_input[i];
+        }
+
+        // Cleanup
+        cudaFree(d_neurons);
+        delete[] h_input;
+        delete[] h_expected;
+        delete[] h_result;
+    }
+}
+
+// Test specific edge cases for Sigmoid
+TEST(ActivationFunctions, SigmoidEdgeCases) {
+    const int size = 5;
+    float h_input[size] = {-100.0f, -10.0f, 0.0f, 10.0f, 100.0f};
+    float h_expected[size];
+    float h_result[size];
+
+    // Calculate expected values
+    for (int i = 0; i < size; i++) {
+        h_expected[i] = cpuSigmoid(h_input[i]);
+    }
+
+    // Allocate device memory
+    float *d_neurons;
+    cudaMalloc(&d_neurons, size * sizeof(float));
+    cudaMemcpy(d_neurons, h_input, size * sizeof(float), cudaMemcpyHostToDevice);
+
+    // Launch kernel
+    sigmoidActivationKernel<<<1, size>>>(d_neurons, size);
+    cudaDeviceSynchronize();
+
+    // Copy results back
+    cudaMemcpy(h_result, d_neurons, size * sizeof(float), cudaMemcpyDeviceToHost);
+
+    // Verify results
+    const float epsilon = 1e-5f;
+    for (int i = 0; i < size; i++) {
+        EXPECT_NEAR(h_expected[i], h_result[i], epsilon) << "Sigmoid edge case mismatch for input " << h_input[i];
+    }
+
+    cudaFree(d_neurons);
+}
+
+// Test specific edge cases for ReLU
+TEST(ActivationFunctions, ReluEdgeCases) {
+    const int size = 5;
+    double h_input[size] = {-100.0, -0.001, 0.0, 0.001, 100.0};
+    double h_expected[size];
+    double h_result[size];
+
+    // Calculate expected values
+    for (int i = 0; i < size; i++) {
+        h_expected[i] = cpuReLU(h_input[i]);
+    }
+
+    // Allocate device memory
+    double *d_neurons;
+    cudaMalloc(&d_neurons, size * sizeof(double));
+    cudaMemcpy(d_neurons, h_input, size * sizeof(double), cudaMemcpyHostToDevice);
+
+    // Launch kernel
+    reluActivationKernel<<<1, size>>>(d_neurons, size);
+    cudaDeviceSynchronize();
+
+    // Copy results back
+    cudaMemcpy(h_result, d_neurons, size * sizeof(double), cudaMemcpyDeviceToHost);
+
+    // Verify results
+    const double epsilon = 1e-10;
+    for (int i = 0; i < size; i++) {
+        EXPECT_NEAR(h_expected[i], h_result[i], epsilon) << "ReLU edge case mismatch for input " << h_input[i];
+    }
+
+    cudaFree(d_neurons);
+}
+
+// Performance test for large arrays
+TEST(ActivationFunctions, SigmoidPerformance) {
+    const int size = 10000000;  // 10M elements
+
+    // Allocate host memory
+    float *h_input = new float[size];
+
+    // Initialize with random values between -5 and 5
+    for (int i = 0; i < size; i++) {
+        h_input[i] = -5.0f + (rand() / (float)RAND_MAX) * 10.0f;
+    }
+
+    // Allocate device memory
+    float *d_neurons;
+    cudaMalloc(&d_neurons, size * sizeof(float));
+    cudaMemcpy(d_neurons, h_input, size * sizeof(float), cudaMemcpyHostToDevice);
+
+    // Launch kernel and time it
+    cudaEvent_t start, stop;
+    cudaEventCreate(&start);
+    cudaEventCreate(&stop);
+
+    int numThreads = THREADS_PER_BLOCK;
+    int numBlocks = calculateBlocks(size);
+
+    cudaEventRecord(start);
+    sigmoidActivationKernel<<<numBlocks, numThreads>>>(d_neurons, size);
+    cudaEventRecord(stop);
+
+    cudaEventSynchronize(stop);
+
+    float milliseconds = 0;
+    cudaEventElapsedTime(&milliseconds, start, stop);
+
+    printf("Sigmoid activation on %d elements took %.3f ms\n", size, milliseconds);
+
+    // Clean up
+    cudaFree(d_neurons);
+    delete[] h_input;
+    cudaEventDestroy(start);
+    cudaEventDestroy(stop);
+
+    // No assertions, this is just a performance measurement
+    SUCCEED();
 }

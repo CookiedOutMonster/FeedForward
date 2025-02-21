@@ -84,10 +84,13 @@ void NeuralNetwork::initLayersCUDA(const std::vector<int>& layerConfig) {
 
     for (size_t i = 0; i < layerConfig.size(); ++i) {
         int numNeurons = layerConfig[i];
+
+        // @TODO consider making a function for legibility
         int prevLayerNeurons = (i == FIRST_LAYER) ? 0 : layerConfig[i - 1];
 
         layersGPU[i] = createLayer(numNeurons, prevLayerNeurons);
 
+        // change to last layer
         if (i == FIRST_LAYER) {
             layersGPU[i]->numWeights = 0;
             layersGPU[i]->numBiases = 0;
@@ -200,35 +203,44 @@ vector<float> NeuralNetwork::feedForwardCPU(vector<float> inputData) {
 
 // it's okay if this is not perfect!
 vector<float> NeuralNetwork ::feedForwardCUDA(vector<float>& inputData) {
-    // take input data and assign it to the first layer.
-    // void inputCUDA(const vector<float>& inputData);
-
     // @TODO make this a function
     int numberOfOutPutNuerons = this->lastLayerGPU->numNeurons;
     vector<float> output(numberOfOutPutNuerons, 0.0f);
 
     // take input data and place it inside input layers
     inputCUDA(inputData);
-
-    // so the layer of i's activations is computed as:
-    // the activations of the previous layer?
-    // * the weights of the previous layer?
-    // plus the bias of the current layer?
-
     LayerGPU* prevLayer = const_cast<LayerGPU*>(firstLayerGPU);
 
     // this means: start on the second layer
     for (int i = SECOND_LAYER; i < this->numLayers; i++) {
-        // current layer
+        // - todo
+        // - right now a LayerGPU stores
+        //      - weights of prev layer
+        //      - activations of prev layer
+        //      - bias of current layer
+        // - I wannt to change that so it stores:
+        //      - activations o current layer
+
         LayerGPU* currLayer = layersGPU[i];
-        float* curr_device_bias = currLayer->d_biases;
+        float* curr_device_bias = currLayer->h__curr_biases;
+        float* curr_device_activations = currLayer->h_curr_neuronActivations;
+        float* prev_device_activation = prevLayer->h_curr_neuronActivations;
+        float* prev_device_weights = currLayer->h_prev_weights;
 
-        // get the value of the previous layer
-        // holy memory access batman
-        float* prev_device_activation = prevLayer->d_neuronActivations;
-        float* prev_device_weights = prevLayer->d_weights;  // does the input layer have weights?
+        // first: compute the matrix mul of A * W
+        int numCurrNeurons = currLayer->numNeurons;
+        int numPrevNeurons = prevLayer->numNeurons;
+        int numThreads = min(THREADS_PER_BLOCK, numCurrNeurons);  // each neuron gets its own thread...
+        int numBlocks = calculateBlocks(numCurrNeurons);
 
-        // kernal call
+        // multiplication
+        MatrixMultiplication<<<numBlocks, numThreads>>>(prev_device_weights, prev_device_activation,
+                                                        curr_device_activations, numPrevNeurons);
+        cudaDeviceSynchronize();
+
+        MatrixAddition<<<numBlocks, numThreads>>>(curr_device_activations, curr_device_bias, curr_device_activations,
+                                                  numCurrNeurons);
+        cudaDeviceSynchronize();
 
         // problem: decide if the Layer's weights and biases are for the next layer or they are for the previous layer
         // lol

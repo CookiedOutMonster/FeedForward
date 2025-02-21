@@ -20,3 +20,7 @@ void initGPUConfig() {
     std::cout << "Max Threads Per Block: " << prop.maxThreadsPerBlock << std::endl;
     std::cout << "Using THREADS_PER_BLOCK: " << THREADS_PER_BLOCK << std::endl;
 }
+
+int calculateBlocks(int size) {
+    return (size + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
+}

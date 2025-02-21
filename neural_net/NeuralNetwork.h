@@ -13,6 +13,7 @@
 #include "GPUConfig.h"
 #include "Layer.h"
 #include "LayerGPU.h"
+#include "MatrixOperations.h"
 
 using namespace std;
 
