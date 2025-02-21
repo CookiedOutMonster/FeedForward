@@ -5,7 +5,6 @@
 using namespace std;
 
 LayerGPU* createLayer(int numNeurons, int prevLayerNeurons, std::mt19937 rng) {
-    // Allocate the struct itself
     LayerGPU* layer = new LayerGPU();
 
     layer->numNeurons = numNeurons;
@@ -25,11 +24,11 @@ LayerGPU* createLayer(int numNeurons, int prevLayerNeurons, std::mt19937 rng) {
     }
 
     // Allocate host memory
-    layer->h_neuronActivations = (float*)malloc(numNeurons * sizeof(float));
-    layer->h_weights = (float*)malloc(layer->numWeights * sizeof(float));
-    layer->h_biases = (float*)malloc(numNeurons * sizeof(float));
+    layer->h_curr_neuronActivations = (float*)malloc(numNeurons * sizeof(float));
+    layer->h_prev_weights = (float*)malloc(layer->numWeights * sizeof(float));
+    layer->h__curr_biases = (float*)malloc(numNeurons * sizeof(float));
 
-    if (!layer->h_neuronActivations || !layer->h_weights || !layer->h_biases) {
+    if (!layer->h_curr_neuronActivations || !layer->h_prev_weights || !layer->h__curr_biases) {
         delete layer;
         throw std::runtime_error("Failed to allocate host memory");
     }
@@ -42,6 +41,7 @@ LayerGPU* createLayer(int numNeurons, int prevLayerNeurons, std::mt19937 rng) {
     if (prevLayerNeurons != 0) {
         initializeRandomWeightsAndBiases(layer, rng, 0.0f, 1.0f);
     }
+
     return layer;
 }
 
@@ -52,20 +52,22 @@ void initializeRandomWeightsAndBiases(LayerGPU* layer, mt19937 rng, float min, f
 
     // Initialize weights
     for (int i = 0; i < layer->numWeights; i++) {
-        layer->h_weights[i] = dist(rng);
+        layer->h_prev_weights[i] = dist(rng);
     }
 
     // Initialize biases
     for (int i = 0; i < layer->numBiases; i++) {
-        layer->h_biases[i] = dist(rng);
+        layer->h__curr_biases[i] = dist(rng);
     }
 
     // Copy to device
-    checkCuda(cudaMemcpy(layer->d_weights, layer->h_weights, layer->numWeights * sizeof(float), cudaMemcpyHostToDevice),
-              "Failed to copy weights to device");
+    checkCuda(
+        cudaMemcpy(layer->d_weights, layer->h_prev_weights, layer->numWeights * sizeof(float), cudaMemcpyHostToDevice),
+        "Failed to copy weights to device");
 
-    checkCuda(cudaMemcpy(layer->d_biases, layer->h_biases, layer->numBiases * sizeof(float), cudaMemcpyHostToDevice),
-              "Failed to copy biases to device");
+    checkCuda(
+        cudaMemcpy(layer->d_biases, layer->h__curr_biases, layer->numBiases * sizeof(float), cudaMemcpyHostToDevice),
+        "Failed to copy biases to device");
 }
 
 cudaError_t freeLayerGPU(LayerGPU* layer) {
@@ -87,9 +89,9 @@ cudaError_t freeLayerGPU(LayerGPU* layer) {
     }
 
     // Free host memory
-    free(layer->h_neuronActivations);
-    free(layer->h_weights);
-    free(layer->h_biases);
+    free(layer->h_curr_neuronActivations);
+    free(layer->h_prev_weights);
+    free(layer->h__curr_biases);
 
     return cudaSuccess;
 }

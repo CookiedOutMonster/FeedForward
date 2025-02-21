@@ -7,6 +7,11 @@
 #include <random>
 #include <stdexcept>
 
+/*
+    - Struct contains 1D arrays for information required to activate at the current layer
+    - This means that it contains the weights of the previous layer but the biases and the activations of the curent
+    - Layer is initialized using random values but a seed for testing
+*/
 typedef struct {
     // device
     float *d_neuronActivations;
@@ -14,9 +19,9 @@ typedef struct {
     float *d_biases;
 
     // Host
-    float *h_neuronActivations;
-    float *h_weights;
-    float *h_biases;
+    float *h_curr_neuronActivations;
+    float *h_prev_weights;
+    float *h__curr_biases;
 
     // @TODO consider removing "prevLayerNeurons"
     int numNeurons;
@@ -29,6 +34,8 @@ typedef struct {
 LayerGPU *createLayer(int numNeurons, int prevLayerNeurons, std::mt19937 rng = std::mt19937(std::random_device{}()));
 cudaError_t freeLayerGPU(LayerGPU *layer);
 void updateLayerActivations(const LayerGPU *layer, const float *newActivations, size_t numOfActivations);
+
+// consider moving this fction into GPUConfig
 void checkCuda(cudaError_t status, const char *msg);
 
 void initializeRandomWeightsAndBiases(LayerGPU *layer, std::mt19937 rng, float min, float max);
