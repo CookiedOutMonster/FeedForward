@@ -43,5 +43,6 @@ void initializeRandomWeightsAndBiases(LayerGPU *layer, std::mt19937 rng, float m
 // Generalized update functions for weights and biases
 void updateWeights(LayerGPU *layer, const float *newWeights, size_t numOfWeights);
 void updateBiases(LayerGPU *layer, const float *newBiases, size_t numOfBiases);
+void transferActivationsHostToDevice(LayerGPU *layer);
 
 #endif  // LAYERGPU_H

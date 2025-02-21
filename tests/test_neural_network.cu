@@ -197,7 +197,11 @@ TEST(TestNN, TestThatInputWorksGPU) {
     std::vector<int> config = {5, 5};
     NeuralNetwork nn(config, "sigmoid", true);
 
-    std::vector<float> inputData = {1, 2, 3, 4, 5};
+    vector<float> inputData = {1, 2, 3, 4, 5};
 
-    nn.feedForwardCUDA(inputData);
+    vector<float> result = nn.feedForwardCUDA(inputData);
+
+    for (int i = 0; i < result.size(); i++) {
+        cout << "First pass of feed forward lets go result = " << result[i] << endl;
+    }
 }

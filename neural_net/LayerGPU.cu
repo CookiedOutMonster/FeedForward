@@ -135,3 +135,21 @@ void checkCuda(cudaError_t status, const char* msg) {
         throw std::runtime_error(std::string(msg) + " | CUDA Error: " + cudaGetErrorString(status));
     }
 }
+
+/**
+ * More tests probs
+ */
+void transferActivationsHostToDevice(LayerGPU* layer) {
+    if (layer == nullptr) {
+        throw std::runtime_error("Null layer pointer in transferActivationsHostToDevice");
+    }
+
+    if (layer->h_curr_neuronActivations == nullptr || layer->d_neuronActivations == nullptr) {
+        throw std::runtime_error("Null activation pointers in transferActivationsHostToDevice");
+    }
+
+    // Transfer the current activation values from host to device
+    checkCuda(cudaMemcpy(layer->d_neuronActivations, layer->h_curr_neuronActivations, layer->numNeurons * sizeof(float),
+                         cudaMemcpyHostToDevice),
+              "Failed to transfer activations from host to device");
+}

@@ -202,56 +202,56 @@ vector<float> NeuralNetwork::feedForwardCPU(vector<float> inputData) {
 ///////////////////////////////////////////////////////
 
 // it's okay if this is not perfect!
-vector<float> NeuralNetwork ::feedForwardCUDA(vector<float>& inputData) {
-    // @TODO make this a function
-    int numberOfOutPutNuerons = this->lastLayerGPU->numNeurons;
-    vector<float> output(numberOfOutPutNuerons, 0.0f);
+vector<float> NeuralNetwork::feedForwardCUDA(vector<float>& inputData) {
+    // Get the number of output neurons
+    int numberOfOutputNeurons = this->lastLayerGPU->numNeurons;
+    vector<float> output(numberOfOutputNeurons, 0.0f);
 
-    // take input data and place it inside input layers
+    // Take input data and place it inside input layers
     inputCUDA(inputData);
     LayerGPU* prevLayer = const_cast<LayerGPU*>(firstLayerGPU);
 
-    // this means: start on the second layer
+    // Start on the second layer
     for (int i = SECOND_LAYER; i < this->numLayers; i++) {
-        // - todo
-        // - right now a LayerGPU stores
-        //      - weights of prev layer
-        //      - activations of prev layer
-        //      - bias of current layer
-        // - I wannt to change that so it stores:
-        //      - activations o current layer
-
         LayerGPU* currLayer = layersGPU[i];
-        float* curr_device_bias = currLayer->h__curr_biases;
-        float* curr_device_activations = currLayer->h_curr_neuronActivations;
-        float* prev_device_activation = prevLayer->h_curr_neuronActivations;
-        float* prev_device_weights = currLayer->h_prev_weights;
 
-        // first: compute the matrix mul of A * W
+        // Transfer host data to device
+        transferActivationsHostToDevice(prevLayer);
+
+        // Get the dimensions
         int numCurrNeurons = currLayer->numNeurons;
         int numPrevNeurons = prevLayer->numNeurons;
-        int numThreads = min(THREADS_PER_BLOCK, numCurrNeurons);  // each neuron gets its own thread...
+        int numThreads = min(THREADS_PER_BLOCK, numCurrNeurons);
         int numBlocks = calculateBlocks(numCurrNeurons);
 
-        // multiplication
-        MatrixMultiplication<<<numBlocks, numThreads>>>(prev_device_weights, prev_device_activation,
-                                                        curr_device_activations, numPrevNeurons);
+        // Matrix multiplication: R = W * A (using device pointers)
+        MatrixMultiplication<<<numBlocks, numThreads>>>(currLayer->d_weights, prevLayer->d_neuronActivations,
+                                                        currLayer->d_neuronActivations, numPrevNeurons);
         cudaDeviceSynchronize();
 
-        MatrixAddition<<<numBlocks, numThreads>>>(curr_device_activations, curr_device_bias, curr_device_activations,
-                                                  numCurrNeurons);
+        // Add bias: R + B (using device pointers)
+        MatrixAddition<<<numBlocks, numThreads>>>(currLayer->d_neuronActivations, currLayer->d_biases,
+                                                  currLayer->d_neuronActivations, numCurrNeurons);
         cudaDeviceSynchronize();
 
-        // problem: decide if the Layer's weights and biases are for the next layer or they are for the previous layer
-        // lol
+        // Apply activation function: sig(R+B) (using device pointers)
+        sigmoidActivationKernel<<<numBlocks, numThreads>>>(currLayer->d_neuronActivations, numCurrNeurons);
+        cudaDeviceSynchronize();
 
-        // update prev layer
+        // Copy results back to host
+        checkCuda(cudaMemcpy(currLayer->h_curr_neuronActivations, currLayer->d_neuronActivations,
+                             numCurrNeurons * sizeof(float), cudaMemcpyDeviceToHost),
+                  "Failed to copy activations back to host");
+
+        // Update prev layer
         prevLayer = currLayer;
     }
 
+    // Copy the final layer's activations to the output vector
+    memcpy(output.data(), lastLayerGPU->h_curr_neuronActivations, numberOfOutputNeurons * sizeof(float));
+
     return output;
 }
-
 void NeuralNetwork ::inputCUDA(vector<float>& inputData) {
     // TODO test producing an error as well :-)
     float* convertedInputData = inputData.data();
